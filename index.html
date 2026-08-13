@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodConnect - 사용자 앱</title>
+    <!-- Tailwind CSS (UI Framework) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome (Icons) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .filter-chip { transition: all 0.2s; }
+        .filter-chip.active { background-color: #EF4444; color: white; border-color: #EF4444; }
+        .food-card { transition: transform 0.2s; }
+        .food-card:hover { transform: translateY(-3px); }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 22px;
+            width: 22px;
+            border-radius: 50%;
+            background: #EF4444;
+            cursor: pointer;
+            margin-top: -7px;
+            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+
+    <!-- ==================== [ screen-auth ] 로그인 / 회원가입 화면 ==================== -->
+    <div id="screen-auth" class="min-h-screen max-w-md mx-auto bg-white flex flex-col justify-center p-6 space-y-6">
+        
+        <!-- 브랜드 로고 -->
+        <div class="text-center space-y-2">
+            <div class="w-16 h-16 bg-red-500 rounded-3xl mx-auto flex items-center justify-center text-white text-3xl shadow-lg">
+                <i class="fa-solid fa-utensils"></i>
+            </div>
+            <h1 class="text-2xl font-black text-gray-900 tracking-tight">FoodConnect</h1>
+            <p class="text-xs text-gray-400">AI 기반 맞춤형 식단 추천 & 영양 관리 서비스</p>
+        </div>
+
+        <!-- 로그인 / 회원가입 탭 전환 -->
+        <div class="bg-gray-100 p-1 rounded-2xl flex text-xs font-bold">
+            <button id="btn-tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2.5 rounded-xl bg-white text-gray-800 shadow-sm transition">로그인</button>
+            <button id="btn-tab-signup" onclick="switchAuthTab('signup')" class="flex-1 py-2.5 rounded-xl text-gray-400 transition">회원가입</button>
+        </div>
+
+        <!-- 1) 로그인 폼 -->
+        <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">아이디</label>
+                <input type="text" id="login-id" placeholder="아이디를 입력하세요" required class="w-full border rounded-xl px-3 py-2.5 text-xs border-gray-200 focus:outline-none focus:border-red-500">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">비밀번호</label>
+                <input type="password" id="login-pw" placeholder="비밀번호를 입력하세요" required class="w-full border rounded-xl px-3 py-2.5 text-xs border-gray-200 focus:outline-none focus:border-red-500">
+            </div>
+            
+            <div class="flex items-center justify-between text-xs text-gray-500">
+                <label class="flex items-center space-x-1.5 cursor-pointer text-xs">
+                    <input type="checkbox" id="auto-login-check" class="rounded text-red-500 focus:ring-red-400">
+                    <span>자동 로그인</span>
+                </label>
+                <div class="space-x-2 text-[10px] text-gray-400">
+                    <button type="button" onclick="openFindIdModal()" class="hover:underline">아이디 찾기</button>
+                    <span>|</span>
+                    <button type="button" onclick="openFindPwModal()" class="hover:underline">비밀번호 찾기</button>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl text-xs shadow-md transition">
+                로그인하기
+            </button>
+        </form>
+
+        <!-- 2) 회원가입 폼 -->
+        <form id="form-signup" onsubmit="handleSignup(event)" class="hidden space-y-3">
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">이름</label>
+                <input type="text" id="signup-name" placeholder="이름 입력" required class="w-full border rounded-xl px-3 py-2 text-xs border-gray-200 focus:outline-none focus:border-red-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">전화번호 (숫자만 입력)</label>
+                <input type="tel" id="signup-phone" placeholder="01012345678" required oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="w-full border rounded-xl px-3 py-2 text-xs border-gray-200 focus:outline-none focus:border-red-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">아이디</label>
+                <div class="flex space-x-1.5">
+                    <input type="text" id="signup-id" placeholder="아이디 입력" required class="flex-1 border rounded-xl px-3 py-2 text-xs border-gray-200 focus:outline-none focus:border-red-500">
+                    <button type="button" onclick="checkDuplicateId()" class="bg-gray-800 text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap">중복검사</button>
+                </div>
+                <p id="id-check-msg" class="text-[10px] mt-1 font-semibold hidden"></p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">비밀번호</label>
+                    <input type="password" id="signup-pw" placeholder="비밀번호" required oninput="validatePasswords()" class="w-full border rounded-xl px-3 py-2 text-xs border-gray-200 focus:outline-none focus:border-red-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">비밀번호 재확인</label>
+                    <input type="password" id="signup-pw-confirm" placeholder="재확인" required oninput="validatePasswords()" class="w-full border rounded-xl px-3 py-2 text-xs border-gray-200 focus:outline-none focus:border-red-500">
+                </div>
+            </div>
+            <p id="pw-match-msg" class="text-[10px] font-semibold hidden"></p>
+
+            <div class="grid grid-cols-2 gap-2 pt-1">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">성별</label>
+                    <select id="signup-gender" class="w-full border rounded-xl px-3 py-2 text-xs border-gray-200">
+                        <option value="남성">남성</option>
+                        <option value="여성">여성</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">나이 (세)</label>
+                    <input type="number" id="signup-age" value="25" min="1" max="120" required class="w-full border rounded-xl px-3 py-2 text-xs border-gray-200">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">신장 (cm)</label>
+                    <input type="number" id="signup-height" value="175" min="50" max="230" required class="w-full border rounded-xl px-3 py-2 text-xs border-gray-200">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">체중 (kg)</label>
+                    <input type="number" id="signup-weight" value="70" min="20" max="200" required class="w-full border rounded-xl px-3 py-2 text-xs border-gray-200">
+                </div>
+            </div>
+
+            <button type="submit" id="btn-submit-signup" disabled class="w-full bg-gray-300 text-white font-bold py-3 rounded-xl text-xs shadow-sm transition mt-2">
+                푸드커넥트 시작하기
+            </button>
+        </form>
+
+    </div>
+
+    <!-- ==================== 모달 1: 아이디 찾기 ==================== -->
+    <div id="modal-find-id" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-5 w-full max-w-sm space-y-4">
+            <h3 class="font-bold text-sm text-gray-800"><i class="fa-solid fa-user-tag text-red-500 mr-1"></i> 아이디 찾기</h3>
+            
+            <div id="find-id-step1" class="space-y-3">
+                <div>
+                    <label class="block text-[11px] text-gray-500 mb-1">전화번호 입력</label>
+                    <input type="tel" id="find-id-phone" placeholder="01012345678" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="w-full border rounded-xl px-3 py-2 text-xs border-gray-200">
+                </div>
+                <button type="button" onclick="sendIdCode()" class="w-full bg-gray-800 text-white font-bold py-2 rounded-xl text-xs">전화번호 인증 및 코드 발송</button>
+            </div>
+
+            <div id="find-id-step2" class="hidden space-y-3">
+                <div>
+                    <label class="block text-[11px] text-gray-500 mb-1">재발급 코드 입력 (임시코드: 1234)</label>
+                    <input type="text" id="find-id-code" placeholder="4자리 코드 입력" class="w-full border rounded-xl px-3 py-2 text-xs border-gray-200">
+                </div>
+                <button type="button" onclick="verifyIdCode()" class="w-full bg-red-500 text-white font-bold py-2 rounded-xl text-xs">아이디 확인</button>
+            </div>
+
+            <div id="find-id-result" class="hidden space-y-3 text-center">
+                <p class="text-xs text-gray-600">고객님의 아이디는 아래와 같습니다.</p>
+                <div id="found-id-display" class="bg-gray-100 p-3 rounded-xl font-bold text-red-500 text-sm">-</div>
+                <button type="button" onclick="closeAuthModal()" class="w-full bg-gray-800 text-white font-bold py-2 rounded-xl text-xs">로그인으로 돌아가기</button>
+            </div>
+
+            <button type="button" onclick="closeAuthModal()" class="w-full text-center text-xs text-gray-400">닫기</button>
+        </div>
+    </div>
+
+    <!-- ==================== 모달 2: 비밀번호 찾기 및 재설정 ==================== -->
+    <div id="modal-find-pw" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-5 w-full max-w-sm space-y-4">
+            <h3 class="font-bold text-sm text-gray-800"><i class="fa-solid fa-key text-red-500 mr-1"></i> 비밀번호 찾기 / 재설정</h3>
+            
+            <div id="find-pw-step1" class="space-y-3">
+                <div>
+                    <label class="block text-[11px] text-gray-500 mb-1">아이디</label>
+                    <input type="text" id="find-pw-id" placeholder="아이디 입력" class="w-full border rounded-xl px-3 py-2 text-xs border-gray-200">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-gray-500 mb-1">전화번호</label>
+                    <input type="tel" id="find-pw-phone" placeholder="01012345678" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="w-full border rounded-xl px-3 py-2 text-xs border-gray-200">
+                </div>
+                <button type="button" onclick="verifyUserForPwReset()" class="w-full bg-gray-800 text-white font-bold py-2 rounded-xl text-xs">본인 확인 및 재설정 진행</button>
+            </div>
+
+            <div id="find-pw-step2" class="hidden space-y-3">
+                <div>
+                    <label class="block text-[11px] text-gray-500 mb-1">새 비밀번호 입력</label>
+                    <input type="password" id="reset-pw" placeholder="새 비밀번호" class="w-full border rounded-xl px-3 py-2 text-xs border-gray-200">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-gray-500 mb-1">새 비밀번호 재입력</label>
+                    <input type="password" id="reset-pw-confirm" placeholder="새 비밀번호 재입력" class="w-full border rounded-xl px-3 py-2 text-xs border-gray-200">
+                </div>
+                <button type="button" onclick="completePwReset()" class="w-full bg-red-500 text-white font-bold py-2 rounded-xl text-xs">비밀번호 변경 완료</button>
+            </div>
+
+            <button type="button" onclick="closeAuthModal()" class="w-full text-center text-xs text-gray-400">닫기</button>
+        </div>
+    </div>
+
+
+    <!-- ==================== [ screen-main ] 메인 서비스 앱 화면 ==================== -->
+    <div id="screen-main" class="hidden">
+
+        <!-- 상단 헤더 -->
+        <header class="bg-white shadow-sm sticky top-0 z-40">
+            <div class="max-w-md mx-auto px-4 py-3 flex justify-between items-center">
+                <h1 class="text-xl font-extrabold text-red-500 flex items-center">
+                    <i class="fa-solid fa-utensils mr-2"></i>FoodConnect
+                </h1>
+                <div class="flex items-center space-x-2">
+                    <span id="header-mode-badge" class="text-xs bg-red-50 text-red-500 font-bold px-2.5 py-1 rounded-full border border-red-100">
+                        개인 맞춤 모드
+                    </span>
+                    <button onclick="handleLogout()" title="로그아웃" class="text-gray-400 hover:text-red-500 text-xs px-1">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 메인 컨텐츠 영역 -->
+        <main class="max-w-md mx-auto p-4 pb-28 space-y-4">
+
+            <!-- ==================== 1. [홈 / 추천] 탭 ==================== -->
+            <div id="tab-home" class="tab-content space-y-4">
+
+                <!-- 1-1. 식사 모드 선택 -->
+                <section class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                    <label class="block text-xs font-semibold text-gray-400 mb-2">식사 모드 선택</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="btn-mode-personal" onclick="setMealMode('personal')" class="py-2.5 rounded-xl font-bold text-sm bg-red-500 text-white shadow-sm">
+                            <i class="fa-solid fa-user mr-1"></i> 개인 맞춤 식사
+                        </button>
+                        <button id="btn-mode-group" onclick="setMealMode('group')" class="py-2.5 rounded-xl font-bold text-sm bg-gray-100 text-gray-600">
+                            <i class="fa-solid fa-users mr-1"></i> 단체 모임 식사
+                        </button>
+                    </div>
+
+                    <!-- 단체 모임 영역 -->
+                    <div id="group-session-area" class="hidden mt-4 pt-4 border-t border-gray-100 space-y-3">
+                        <div id="group-init-view" class="space-y-3">
+                            <h3 class="font-bold text-sm text-gray-800"><i class="fa-solid fa-people-group text-red-500 mr-1"></i> 단체 모임방 생성 및 참여</h3>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="createNewGroup()" class="bg-gray-900 text-white py-2.5 rounded-xl text-xs font-bold shadow-sm">
+                                    <i class="fa-solid fa-plus-circle mr-1"></i> 모임방 생성 (코드 발급)
+                                </button>
+                                <div class="flex space-x-1">
+                                    <input type="text" id="join-code-input" placeholder="코드 입력" class="w-full border rounded-xl px-2.5 py-1.5 text-xs uppercase border-gray-200">
+                                    <button onclick="joinGroupWithCode()" class="bg-red-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap">참여</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="group-active-view" class="hidden bg-red-50 border border-red-200 rounded-xl p-3 space-y-2">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <span class="text-[10px] text-red-400 block">모임 코드</span>
+                                    <span id="display-group-code" class="text-base font-extrabold text-red-600 tracking-wider">FOOD99</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-xs font-bold text-gray-700 block">현재 참여 인원</span>
+                                    <span id="display-member-count" class="text-sm font-extrabold text-red-500"><i class="fa-solid fa-user-check mr-1"></i>3명 참여 중</span>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2 pt-1">
+                                <button onclick="addVirtualMember()" class="flex-1 bg-white border border-red-200 text-red-500 py-1.5 rounded-lg text-xs font-bold">
+                                    + 멤버 가상 추가
+                                </button>
+                                <button onclick="leaveGroup()" class="bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold">
+                                    나가기
+                                </button>
+                            </div>
+                            <p class="text-[11px] text-red-500 mt-1"><i class="fa-solid fa-circle-info mr-1"></i> 참여원 전체의 최근 1주일 중복 식단을 제거하여 추천합니다.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 1-2. 취향 선택 필터 -->
+                <section class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h2 class="font-bold text-sm text-gray-800"><i class="fa-solid fa-sliders text-red-500 mr-1.5"></i>내 취향 맞춤 필터</h2>
+                        <div class="flex space-x-2">
+                            <button onclick="randomizeRecommendations()" class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-md font-bold"><i class="fa-solid fa-shuffle mr-1"></i>완전 랜덤 추천</button>
+                            <button onclick="resetFilters()" class="text-xs text-gray-400 hover:text-red-500"><i class="fa-solid fa-rotate-right mr-1"></i>초기화</button>
+                        </div>
+                    </div>
+
+                    <!-- 카테고리 -->
+                    <div>
+                        <span class="text-xs text-gray-400 block mb-1.5">음식 분류</span>
+                        <div class="flex flex-wrap gap-1.5" id="category-filters">
+                            <button class="filter-chip active text-xs border rounded-full px-3 py-1" onclick="selectCategory('전체', this)">전체</button>
+                            <button class="filter-chip text-xs border rounded-full px-3 py-1" onclick="selectCategory('한식', this)">한식</button>
+                            <button class="filter-chip text-xs border rounded-full px-3 py-1" onclick="selectCategory('중식', this)">중식</button>
+                            <button class="filter-chip text-xs border rounded-full px-3 py-1" onclick="selectCategory('일식', this)">일식</button>
+                            <button class="filter-chip text-xs border rounded-full px-3 py-1" onclick="selectCategory('양식', this)">양식</button>
+                            <button class="filter-chip text-xs border rounded-full px-3 py-1" onclick="selectCategory('분식', this)">분식</button>
+                            <button class="filter-chip text-xs border rounded-full px-3 py-1" onclick="selectCategory('패스트푸드', this)">패스트푸드</button>
+                            <button class="filter-chip text-xs border rounded-full px-3 py-1" onclick="selectCategory('야식/아시안', this)">야식/아시안</button>
+                        </div>
+                    </div>
+
+                    <!-- 맵기 단계 -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span class="text-xs text-gray-400">맵기 단계</span>
+                            <button id="spicy-all-btn" onclick="setSpicyAll()" class="text-xs bg-red-50 text-red-500 font-bold px-2 py-0.5 rounded-md border border-red-200">
+                                상관없음 (전체선택)
+                            </button>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                            <input type="range" id="spicy-slider" min="0" max="5" value="0" step="1" oninput="onSpicySliderChange(this.value)" class="w-full bg-gray-200 rounded-lg appearance-none h-2">
+                            <div class="flex justify-between text-[10px] text-gray-500 font-medium mt-2">
+                                <span>전체</span>
+                                <span>1단계</span>
+                                <span>2단계</span>
+                                <span>3단계</span>
+                                <span>4단계</span>
+                                <span>5단계</span>
+                            </div>
+                            <p class="text-center text-xs font-bold text-red-500 mt-2" id="spicy-level-desc">선택: 상관없음 (전체)</p>
+                        </div>
+                    </div>
+
+                    <!-- 상황/식감 다중 선택 -->
+                    <div>
+                        <span class="text-xs text-gray-400 block mb-1.5">상황 및 식감 (중복 선택 가능)</span>
+                        <div class="flex flex-wrap gap-1.5" id="feature-filters">
+                            <button class="filter-chip text-xs border rounded-full px-2.5 py-1" onclick="toggleFeature('더울때', this)">❄️ 더울 때</button>
+                            <button class="filter-chip text-xs border rounded-full px-2.5 py-1" onclick="toggleFeature('추울때', this)">🔥 추울 때</button>
+                            <button class="filter-chip text-xs border rounded-full px-2.5 py-1" onclick="toggleFeature('국물', this)">🍲 국물요리</button>
+                            <button class="filter-chip text-xs border rounded-full px-2.5 py-1" onclick="toggleFeature('바삭함', this)">🍗 바삭함</button>
+                            <button class="filter-chip text-xs border rounded-full px-2.5 py-1" onclick="toggleFeature('쫄깃함', this)">🍡 쫄깃함</button>
+                            <button class="filter-chip text-xs border rounded-full px-2.5 py-1" onclick="toggleFeature('가벼움', this)">🥗 가볍고 신선함</button>
+                            <button class="filter-chip text-xs border rounded-full px-2.5 py-1" onclick="toggleFeature('든든함', this)">🍱 든든한 한끼</button>
+                            <button class="filter-chip text-xs border rounded-full px-2.5 py-1" onclick="toggleFeature('술안주', this)">🍺 술안주/야식</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 1-3. 추천 메뉴 결과 리스트 -->
+                <section class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h2 class="font-bold text-md text-gray-800" id="recommendation-header-title">맞춤 추천 메뉴</h2>
+                        <span class="text-xs text-gray-400">1주일 식단 자동 차단</span>
+                    </div>
+                    
+                    <div id="food-recommendation-list" class="space-y-3">
+                        <!-- Dynamic Rendering -->
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- ==================== 2. [식단 등록] 탭 ==================== -->
+            <div id="tab-camera" class="tab-content hidden space-y-4">
+                <section class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+                    <h2 class="font-bold text-md text-gray-800"><i class="fa-solid fa-camera text-red-500 mr-1.5"></i>식단 등록 페이지</h2>
+                    <p class="text-xs text-gray-400">음식 사진을 촬영하거나 직접 입력하여 손쉽게 오늘의 식단을 기록해보세요.</p>
+
+                    <!-- 수동 직접 입력 기능 -->
+                    <div class="bg-gray-50 rounded-xl p-3 border border-gray-200 space-y-2">
+                        <label class="block text-xs font-bold text-gray-700"><i class="fa-solid fa-pen-to-square text-red-500 mr-1"></i>직접 입력하여 기록하기</label>
+                        <div class="flex space-x-2">
+                            <input type="text" id="manual-food-input" placeholder="음식명 입력 (예: 김치찌개)" class="flex-1 border rounded-xl px-3 py-2 text-xs border-gray-200 focus:outline-none focus:border-red-500">
+                            <button onclick="saveManualFoodLog()" class="bg-red-500 text-white font-bold text-xs px-3 py-2 rounded-xl">등록</button>
+                        </div>
+                    </div>
+
+                    <div class="relative flex items-center justify-center my-2">
+                        <div class="border-t border-gray-200 w-full"></div>
+                        <span class="bg-white px-2 text-[10px] text-gray-400 font-bold uppercase absolute">OR</span>
+                    </div>
+
+                    <!-- 카메라/미리보기 박스 -->
+                    <div class="relative w-full h-64 bg-gray-900 rounded-2xl overflow-hidden flex items-center justify-center">
+                        <video id="webcam" autoplay playsinline class="w-full h-full object-cover"></video>
+                        <canvas id="canvas" class="hidden"></canvas>
+                        <img id="photo-preview" class="hidden w-full h-full object-cover filter contrast-110 saturate-125 brightness-105" alt="보정된 사진">
+                        
+                        <span id="filter-badge" class="hidden absolute top-3 right-3 bg-red-500 text-white text-xs px-2.5 py-1 rounded-full shadow-lg">
+                            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> 맛있는 보정 필터 적용
+                        </span>
+                    </div>
+
+                    <!-- 촬영 및 결과 버튼 -->
+                    <div class="space-y-2">
+                        <div id="capture-controls" class="flex justify-center pt-2">
+                            <button onclick="takePicture()" class="w-16 h-16 bg-white rounded-full border-4 border-red-500 flex items-center justify-center shadow-md active:scale-95 transition">
+                                <div class="w-12 h-12 bg-red-500 rounded-full"></div>
+                            </button>
+                        </div>
+                        
+                        <!-- AI 음식 이름 결과 및 사용자 직접 수정 기능 -->
+                        <div id="result-controls" class="hidden space-y-3">
+                            <div class="bg-gray-50 rounded-xl p-3 border space-y-1">
+                                <span class="text-[10px] text-gray-400 block text-center">AI 판별 음식 (잘못 지정 시 직접 수정)</span>
+                                <div class="flex items-center justify-center space-x-2">
+                                    <p id="ai-detected-food" class="font-extrabold text-red-500 text-lg">김치찌개</p>
+                                    <button onclick="editDetectedFoodName()" class="text-xs text-gray-500 underline bg-white px-2 py-0.5 rounded border border-gray-200">
+                                        <i class="fa-solid fa-pen text-[10px]"></i> 수정
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="downloadPhoto()" class="bg-gray-800 text-white py-3 rounded-xl font-bold text-xs">
+                                    <i class="fa-solid fa-download mr-1"></i> 갤러리 다운로드
+                                </button>
+                                <button onclick="confirmFoodLog()" class="bg-red-500 text-white py-3 rounded-xl font-bold text-xs">
+                                    식단 기록 저장
+                                </button>
+                            </div>
+                            <button onclick="resetCameraUI()" class="w-full text-xs text-gray-400 py-1">다시 촬영하기</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ==================== 3. [영양분석] 탭 ==================== -->
+            <div id="tab-nutrition" class="tab-content hidden space-y-4">
+                
+                <!-- 3-1. 기간 선택 기록 조회 -->
+                <section class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+                    <h2 class="font-bold text-sm text-gray-800"><i class="fa-solid fa-calendar-days text-red-500 mr-1.5"></i>기간별 식단 기록 조회</h2>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                            <label class="block text-gray-400 mb-1">시작일</label>
+                            <input type="date" id="history-start-date" onchange="filterNutritionHistory()" class="w-full border rounded-xl p-2 border-gray-200 font-bold text-gray-700">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 mb-1">종료일</label>
+                            <input type="date" id="history-end-date" onchange="filterNutritionHistory()" class="w-full border rounded-xl p-2 border-gray-200 font-bold text-gray-700">
+                        </div>
+                    </div>
+
+                    <!-- 조회된 기간 식단 내역 -->
+                    <div id="history-records-list" class="space-y-2 pt-1 max-h-48 overflow-y-auto">
+                        <!-- Dynamic History Records -->
+                    </div>
+                </section>
+
+                <!-- 3-2. 오늘의 영양소 섭취 현황 -->
+                <section class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h2 class="font-bold text-sm text-gray-800"><i class="fa-solid fa-chart-pie text-green-500 mr-1.5"></i>오늘의 영양소 섭취 현황</h2>
+                        <span id="nutrition-status-pct" class="text-xs font-extrabold text-red-500">0% 충족</span>
+                    </div>
+
+                    <div class="space-y-3 text-xs pt-1">
+                        <div>
+                            <div class="flex justify-between mb-1 font-semibold">
+                                <span class="text-gray-600">칼로리</span>
+                                <span id="nutrition-cal-display" class="text-gray-800">0 / 2,000 kcal</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                <div id="nutrition-cal-bar" class="bg-red-500 h-2.5 rounded-full" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-1 font-semibold">
+                                <span class="text-gray-600">단백질</span>
+                                <span id="nutrition-protein-display" class="text-gray-800">0 / 65g</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                <div id="nutrition-protein-bar" class="bg-amber-500 h-2.5 rounded-full" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-1 font-semibold">
+                                <span class="text-gray-600">탄수화물</span>
+                                <span id="nutrition-carbs-display" class="text-gray-800">0 / 250g</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                <div id="nutrition-carbs-bar" class="bg-blue-500 h-2.5 rounded-full" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-1 font-semibold">
+                                <span class="text-gray-600">비타민 & 무기질</span>
+                                <span id="nutrition-vit-display" class="text-red-500 font-bold">0 / 100% (부족!)</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                <div id="nutrition-vit-bar" class="bg-purple-500 h-2.5 rounded-full" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3-3. 오늘의 영양소 맞춤 추천 메뉴 -->
+                <section class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+                    <h2 class="font-bold text-sm text-gray-800"><i class="fa-solid fa-leaf text-green-600 mr-1.5"></i>오늘의 영양 보충 추천 메뉴</h2>
+                    <p class="text-xs text-gray-400">부족한 비타민, 식이섬유, 단백질을 채워줄 추천 요리입니다.</p>
+                    
+                    <div id="nutrition-recommended-list" class="space-y-2">
+                        <!-- Dynamic List -->
+                    </div>
+                </section>
+            </div>
+
+            <!-- ==================== 4. [건강한 나] 탭 ==================== -->
+            <div id="tab-profile" class="tab-content hidden space-y-4">
+                
+                <!-- 계정 프로필 상단 카드 -->
+                <section class="bg-gradient-to-br from-red-500 to-amber-500 text-white rounded-2xl p-5 shadow-md flex items-center space-x-4">
+                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center border-2 border-white/40 flex-shrink-0">
+                        <i class="fa-solid fa-child-reaching text-3xl text-white"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-lg" id="profile-user-name">건강한 나</h2>
+                        <p class="text-xs text-white/80" id="profile-user-info">- / -세 / -</p>
+                        <span class="inline-block mt-1 bg-white/20 text-[10px] px-2 py-0.5 rounded-full font-semibold">건강지수 92pt</span>
+                    </div>
+                </section>
+
+                <!-- 4-1. 원하는 식단 목표 선택 -->
+                <section class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+                    <h3 class="font-bold text-sm text-gray-800"><i class="fa-solid fa-bullseye text-red-500 mr-1.5"></i>내가 원하는 식단 목표 설정</h3>
+                    <select id="diet-plan-select" onchange="updateDietPlanGoal()" class="w-full border rounded-xl p-2.5 text-xs font-bold text-gray-700 border-gray-200">
+                        <option value="balanced">🥗 균형잡힌 건강 식단 (영양 균형 최우선)</option>
+                        <option value="diet">🔥 체지방 감량 다이어트 식단 (저열량 & 고식이섬유)</option>
+                        <option value="muscle">💪 근육 증진(득근) 식단 (고단백 위주)</option>
+                        <option value="keto">🥑 저탄수 고지방/당질 제한 식단</option>
+                        <option value="glycemic">🩸 혈당 케어 식단 (GI 지수 관리)</option>
+                    </select>
+                    <p id="diet-plan-desc" class="text-[11px] text-gray-500 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                        탄수화물, 단백질, 지방을 균형 있게 섭취하도록 최적의 맞춤 메뉴를 추천합니다.
+                    </p>
+                </section>
+
+                <!-- 4-2. 내 신체 정보 & 권장/목표 칼로리 설정 -->
+                <section class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-sm text-gray-800"><i class="fa-solid fa-weight-scale text-red-500 mr-1.5"></i>신체 정보 & 칼로리 관리</h3>
+                        <button onclick="updateProfileBodyData()" class="bg-gray-800 text-white px-3 py-1 rounded-lg text-xs font-bold">수정 적용</button>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                            <label class="block text-gray-400 mb-1">나이 (세)</label>
+                            <input type="number" id="profile-age" value="25" class="w-full border rounded-xl p-2 font-bold text-gray-700">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 mb-1">신장 (cm)</label>
+                            <input type="number" id="profile-height" value="175" class="w-full border rounded-xl p-2 font-bold text-gray-700">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 mb-1">체중 (kg)</label>
+                            <input type="number" id="profile-weight" value="70" class="w-full border rounded-xl p-2 font-bold text-gray-700">
+                        </div>
+                    </div>
+
+                    <!-- BMI 실시간 분석 결과 및 칼로리 관리 칸 -->
+                    <div class="bg-gray-50 border rounded-xl p-3 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-[10px] text-gray-400 block">체질량지수 (BMI)</span>
+                                <span id="bmi-value-display" class="text-lg font-black text-gray-800">0.0 kg/m²</span>
+                            </div>
+                            <span id="bmi-status-badge" class="bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                                측정 필요
+                            </span>
+                        </div>
+
+                        <hr class="border-gray-200">
+
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div class="bg-white p-2.5 rounded-lg border border-gray-100">
+                                <span class="text-[10px] text-gray-400 block">권장 섭취 칼로리</span>
+                                <span id="bmi-recommended-cal" class="font-extrabold text-gray-800 text-sm">0 kcal</span>
+                            </div>
+                            <div class="bg-white p-2.5 rounded-lg border border-gray-100">
+                                <label class="text-[10px] text-gray-400 block">내 목표 칼로리 (설정)</label>
+                                <div class="flex items-center space-x-1 mt-0.5">
+                                    <input type="number" id="user-target-cal" value="2000" step="50" onchange="saveTargetCalorie()" class="w-full font-extrabold text-red-500 text-sm focus:outline-none">
+                                    <span class="text-[10px] font-bold text-gray-400">kcal</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4-3. 1주일 자동 초기화 안내 및 회원 탈퇴 버튼 -->
+                <section class="bg-red-50 border border-red-100 rounded-2xl p-4 space-y-3">
+                    <h3 class="font-bold text-red-900 text-xs"><i class="fa-solid fa-clock-rotate-left mr-1"></i>스마트 식단 기록 자동 관리 시스템</h3>
+                    <p class="text-xs text-red-700">
+                        최근 1주일간의 식단 기록은 **7일이 지나면 자동으로 초기화**되어 항상 최신의 식단 중복 방지 로직이 적용됩니다.
+                    </p>
+                    <div class="pt-2 text-right border-t border-red-100/60">
+                        <button onclick="handleDeleteAccount()" class="text-[9px] text-gray-300 hover:text-red-400 underline transition">회원탈퇴</button>
+                    </div>
+                </section>
+
+            </div>
+
+        </main>
+
+        <!-- 하단 네비게이션 탭 바 -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+            <div class="max-w-md mx-auto grid grid-cols-4 text-center py-2">
+                <button onclick="switchTab('home')" id="nav-home" class="text-red-500 flex flex-col items-center">
+                    <i class="fa-solid fa-house text-lg"></i>
+                    <span class="text-[10px] mt-1 font-bold">홈/추천</span>
+                </button>
+                <button onclick="switchTab('camera')" id="nav-camera" class="text-gray-400 hover:text-red-500 flex flex-col items-center">
+                    <i class="fa-solid fa-camera text-lg"></i>
+                    <span class="text-[10px] mt-1">식단등록</span>
+                </button>
+                <button onclick="switchTab('nutrition')" id="nav-nutrition" class="text-gray-400 hover:text-red-500 flex flex-col items-center">
+                    <i class="fa-solid fa-chart-pie text-lg"></i>
+                    <span class="text-[10px] mt-1">영양분석</span>
+                </button>
+                <button onclick="switchTab('profile')" id="nav-profile" class="text-gray-400 hover:text-red-500 flex flex-col items-center">
+                    <i class="fa-solid fa-child-reaching text-lg"></i>
+                    <span class="text-[10px] mt-1 font-bold">건강한 나</span>
+                </button>
+            </div>
+        </nav>
+
+    </div>
+
+    <!-- JavaScript logic -->
+    <script>
+        // --- 1. 구글 기반 메뉴 데이터베이스 ---
+        const googlePopularFoodDB = [
+            // 한식
+            { name: "돼지김치찌개", category: "한식", spicy: 3, features: ["국물", "추울때", "든든함"], nutrient: "단백질, 비타민C" },
+            { name: "된장찌개", category: "한식", spicy: 1, features: ["국물", "담백함", "든든함"], nutrient: "단백질, 이소플라본" },
+            { name: "제육볶음", category: "한식", spicy: 3, features: ["든든함", "매콤함"], nutrient: "단백질, 비타민B1" },
+            { name: "물냉면", category: "한식", spicy: 1, features: ["더울때", "가벼움"], nutrient: "탄수화물" },
+            { name: "비빔냉면", category: "한식", spicy: 3, features: ["더울때", "쫄깃함"], nutrient: "탄수화물, 비타민" },
+            { name: "해물순두부찌개", category: "한식", spicy: 3, features: ["국물", "추울때", "든든함"], nutrient: "단백질, 칼슘" },
+            { name: "소불고기덮밥", category: "한식", spicy: 1, features: ["든든함", "담백함"], nutrient: "단백질, 철분" },
+            { name: "삼계탕", category: "한식", spicy: 1, features: ["추울때", "국물", "든든함"], nutrient: "고단백, 필수아미노산" },
+            { name: "닭볶음탕", category: "한식", spicy: 4, features: ["국물", "매콤함", "술안주"], nutrient: "단백질" },
+            { name: "감자탕", category: "한식", spicy: 3, features: ["국물", "추울때", "술안주"], nutrient: "단백질, 칼슘" },
+            { name: "전복죽", category: "한식", spicy: 1, features: ["가벼움", "담백함"], nutrient: "비타민A, 타우린" },
+            { name: "비빔밥", category: "한식", spicy: 2, features: ["가벼움", "든든함"], nutrient: "식이섬유, 비타민" },
+            { name: "콩나물국밥", category: "한식", spicy: 1, features: ["국물", "추울때"], nutrient: "비타민C, 아스파라긴산" },
+            { name: "육개장", category: "한식", spicy: 4, features: ["국물", "매콤함", "추울때"], nutrient: "단백질, 철분" },
+            { name: "청국장찌개", category: "한식", spicy: 2, features: ["국물", "든든함"], nutrient: "식물성 단백질" },
+            { name: "갈비탕", category: "한식", spicy: 1, features: ["국물", "추울때", "든든함"], nutrient: "단백질, 칼슘" },
+            { name: "부대찌개", category: "한식", spicy: 3, features: ["국물", "든든함"], nutrient: "단백질" },
+            { name: "오징어볶음", category: "한식", spicy: 4, features: ["매콤함", "쫄깃함"], nutrient: "타우린, 단백질" },
+            { name: "보쌈정식", category: "한식", spicy: 1, features: ["든든함", "담백함"], nutrient: "단백질, 비타민B" },
+            { name: "돌솥비빔밥", category: "한식", spicy: 2, features: ["든든함", "바삭함"], nutrient: "무기질, 식이섬유" },
+            { name: "추어탕", category: "한식", spicy: 2, features: ["국물", "추울때"], nutrient: "고칼슘, 단백질" },
+            { name: "동태찌개", category: "한식", spicy: 3, features: ["국물", "추울때"], nutrient: "저지방 고단백" },
+            { name: "도토리묵밥", category: "한식", spicy: 1, features: ["더울때", "가벼움"], nutrient: "타닌, 식이섬유" },
+            { name: "안동찜닭", category: "한식", spicy: 2, features: ["든든함", "쫄깃함"], nutrient: "단백질" },
+            { name: "황태해장국", category: "한식", spicy: 1, features: ["국물", "담백함"], nutrient: "아미노산" },
+
+            // 중식
+            { name: "짜장면", category: "중식", spicy: 1, features: ["든든함", "쫄깃함"], nutrient: "탄수화물" },
+            { name: "해물짬뽕", category: "중식", spicy: 3, features: ["국물", "추울때", "매콤함"], nutrient: "단백질, 타우린" },
+            { name: "마라탕", category: "중식", spicy: 4, features: ["국물", "추울때", "매콤함"], nutrient: "지방, 단백질" },
+            { name: "탕수육", category: "중식", spicy: 1, features: ["바삭함", "든든함"], nutrient: "단백질" },
+            { name: "꿔바로우", category: "중식", spicy: 1, features: ["바삭함", "쫄깃함"], nutrient: "단백질" },
+            { name: "마파두부덮밥", category: "중식", spicy: 3, features: ["든든함"], nutrient: "식물성 단백질" },
+            { name: "고추잡채", category: "중식", spicy: 3, features: ["매콤함", "든든함"], nutrient: "비타민C, 단백질" },
+            { name: "울면", category: "중식", spicy: 1, features: ["국물", "추울때"], nutrient: "탄수화물" },
+            { name: "중화비빔밥", category: "중식", spicy: 4, features: ["매콤함", "든든함"], nutrient: "단백질" },
+            { name: "멘보샤", category: "중식", spicy: 1, features: ["바삭함"], nutrient: "키토산, 단백질" },
+            { name: "유린기", category: "중식", spicy: 2, features: ["바삭함", "가벼움"], nutrient: "단백질" },
+            { name: "동파육", category: "중식", spicy: 1, features: ["든든함"], nutrient: "단백질, 지방" },
+
+            // 일식
+            { name: "등심 돈카츠", category: "일식", spicy: 1, features: ["바삭함", "든든함"], nutrient: "단백질, 비타민B" },
+            { name: "모듬 생선초밥", category: "일식", spicy: 1, features: ["가벼움", "담백함"], nutrient: "오메가3, 단백질" },
+            { name: "돈코츠 라멘", category: "일식", spicy: 1, features: ["국물", "추울때"], nutrient: "탄수화물, 지방" },
+            { name: "매운 카라라멘", category: "일식", spicy: 3, features: ["국물", "매콤함"], nutrient: "탄수화물" },
+            { name: "연어덮밥(사케동)", category: "일식", spicy: 1, features: ["가벼움", "담백함"], nutrient: "단백질, 오메가3" },
+            { name: "가츠동", category: "일식", spicy: 1, features: ["든든함"], nutrient: "단백질" },
+            { name: "야키소바", category: "일식", spicy: 1, features: ["쫄깃함"], nutrient: "탄수화물" },
+            { name: "냉모밀", category: "일식", spicy: 1, features: ["더울때", "가벼움"], nutrient: "루틴, 탄수화물" },
+            { name: "장어덮밥(우나기동)", category: "일식", spicy: 1, features: ["든든함"], nutrient: "비타민A, 단백질" },
+            { name: "오코노미야키", category: "일식", spicy: 1, features: ["술안주"], nutrient: "단백질, 식이섬유" },
+            { name: "후토마키", category: "일식", spicy: 1, features: ["든든함", "가벼움"], nutrient: "비타민, 오메가3" },
+            { name: "텐동(모둠튀김덮밥)", category: "일식", spicy: 1, features: ["바삭함", "든든함"], nutrient: "탄수화물" },
+
+            // 양식
+            { name: "알리오 올리오", category: "양식", spicy: 1, features: ["담백함", "가벼움"], nutrient: "탄수화물, 불포화지방" },
+            { name: "까르보나라", category: "양식", spicy: 1, features: ["든든함"], nutrient: "지방, 탄수화물" },
+            { name: "매콤 투움바 파스타", category: "양식", spicy: 3, features: ["든든함", "매콤함"], nutrient: "단백질, 지방" },
+            { name: "고르곤졸라 피자", category: "양식", spicy: 1, features: ["바삭함"], nutrient: "칼슘" },
+            { name: "리코타 치즈 샐러드", category: "양식", spicy: 1, features: ["가벼움", "더울때"], nutrient: "비타민C, 식이섬유" },
+            { name: "찹스테이크", category: "양식", spicy: 1, features: ["든든함"], nutrient: "고단백, 철분" },
+            { name: "해산물 토마토 파스타", category: "양식", spicy: 2, features: ["가벼움"], nutrient: "리코펜, 타우린" },
+            { name: "버섯 크림 리조또", category: "양식", spicy: 1, features: ["든든함"], nutrient: "식이섬유" },
+            { name: "페퍼로니 피자", category: "양식", spicy: 2, features: ["든든함"], nutrient: "단백질, 칼슘" },
+            { name: "바질 페스토 파스타", category: "양식", spicy: 1, features: ["가벼움"], nutrient: "비타민K, 항산화물질" },
+            { name: "수제 비프버거", category: "양식", spicy: 1, features: ["든든함"], nutrient: "단백질, 철분" },
+            { name: "에그 베네딕트", category: "양식", spicy: 1, features: ["가벼움"], nutrient: "레시틴, 단백질" },
+
+            // 분식
+            { name: "국물 떡볶이", category: "분식", spicy: 3, features: ["쫄깃함", "국물"], nutrient: "탄수화물" },
+            { name: "불닭 떡볶이", category: "분식", spicy: 5, features: ["쫄깃함", "매콤함"], nutrient: "탄수화물" },
+            { name: "모듬 튀김", category: "분식", spicy: 1, features: ["바삭함", "술안주"], nutrient: "지방" },
+            { name: "참치마요 김밥", category: "분식", spicy: 1, features: ["가벼움", "든든함"], nutrient: "단백질, 탄수화물" },
+            { name: "찰순대", category: "분식", spicy: 1, features: ["쫄깃함"], nutrient: "철분" },
+            { name: "라볶이", category: "분식", spicy: 3, features: ["쫄깃함"], nutrient: "탄수화물" },
+            { name: "김치볶음밥", category: "분식", spicy: 2, features: ["든든함"], nutrient: "유산균, 탄수화물" },
+            { name: "쫄면", category: "분식", spicy: 4, features: ["쫄깃함", "더울때"], nutrient: "비타민, 탄수화물" },
+            { name: "수제어묵탕", category: "분식", spicy: 1, features: ["국물", "추울때"], nutrient: "단백질" },
+            { name: "치즈돈까스 김밥", category: "분식", spicy: 1, features: ["든든함", "바삭함"], nutrient: "단백질" },
+
+            // 패스트푸드 & 야식/아시안
+            { name: "싸이버거", category: "패스트푸드", spicy: 2, features: ["바삭함", "든든함"], nutrient: "단백질" },
+            { name: "소고기 쌀국수", category: "야식/아시안", spicy: 1, features: ["국물", "추울때", "가벼움"], nutrient: "단백질" },
+            { name: "매운 무뼈닭발", category: "야식/아시안", spicy: 5, features: ["술안주", "쫄깃함"], nutrient: "콜라겐" },
+            { name: "한방 족발", category: "야식/아시안", spicy: 1, features: ["술안주", "쫄깃함", "든든함"], nutrient: "고단백" },
+            { name: "팟타이", category: "야식/아시안", spicy: 2, features: ["쫄깃함"], nutrient: "단백질, 탄수화물" },
+            { name: "나시고랭", category: "야식/아시안", spicy: 2, features: ["든든함"], nutrient: "단백질" },
+            { name: "불고기버거 세트", category: "패스트푸드", spicy: 1, features: ["든든함"], nutrient: "탄수화물" },
+            { name: "후라이드 치킨", category: "패스트푸드", spicy: 1, features: ["바삭함", "술안주"], nutrient: "단백질" },
+            { name: "양념 치킨", category: "패스트푸드", spicy: 3, features: ["매콤함", "술안주"], nutrient: "단백질" },
+            { name: "분짜", category: "야식/아시안", spicy: 1, features: ["더울때", "가벼움"], nutrient: "비타민, 단백질" },
+            { name: "똠얌꿍", category: "야식/아시안", spicy: 4, features: ["국물", "매콤함"], nutrient: "시트랄, 단백질" },
+            { name: "타코", category: "야식/아시안", spicy: 2, features: ["가벼움"], nutrient: "단백질, 식이섬유" }
+        ];
+
+        // 글로벌 상태 변수
+        // ① 회원 정보 저장 키를 "foodconnect_users_db"로 지정
+        let registeredUsers = JSON.parse(localStorage.getItem("foodconnect_users_db") || "[]");
+        let currentUser = null;
+        let eatenHistoryLogs = [];
+
+        let currentMealMode = 'personal'; 
+        let groupState = { active: false, code: null, members: 1, groupFoods: ["치킨", "삼겹살", "마라탕"] };
+        let selectedCategory = '전체';
+        let selectedSpicyLevel = 0; 
+        let selectedFeatures = [];
+        let isRandomMode = false;
+
+        let isIdChecked = false;
+        let isPwMatched = false;
+
+        function getFormattedDate(offsetDays) {
+            const d = new Date();
+            d.setDate(d.getDate() + offsetDays);
+            return d.toISOString().split('T')[0];
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const activeUserStr = localStorage.getItem("foodconnect_active_user");
+            const savedAutoLogin = localStorage.getItem("foodconnect_autologin");
+
+            if (savedAutoLogin === "true" && activeUserStr) {
+                currentUser = JSON.parse(activeUserStr);
+                loadUserHistoryLogs();
+                startMainApp();
+            }
+        });
+
+        // ② 식단 기록 저장 키를 "foodconnect_logs_{userId}" 형태로 지정하여 불러오기
+        function loadUserHistoryLogs() {
+            if (!currentUser) return;
+            const logKey = `foodconnect_logs_${currentUser.id}`;
+            const stored = localStorage.getItem(logKey);
+            
+            if (stored) {
+                eatenHistoryLogs = JSON.parse(stored);
+            } else {
+                eatenHistoryLogs = [];
+            }
+            cleanUpOldHistory();
+        }
+
+        // ② 식단 기록 저장 키를 "foodconnect_logs_{userId}" 형태로 지정하여 저장하기
+        function saveUserHistoryLogs() {
+            if (!currentUser) return;
+            const logKey = `foodconnect_logs_${currentUser.id}`;
+            localStorage.setItem(logKey, JSON.stringify(eatenHistoryLogs));
+        }
+
+        function cleanUpOldHistory() {
+            const today = new Date();
+            eatenHistoryLogs = eatenHistoryLogs.filter(log => {
+                const logDate = new Date(log.date);
+                const diffTime = Math.abs(today - logDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays <= 7;
+            });
+            saveUserHistoryLogs();
+        }
+
+        function clearAuthInputs() {
+            const formLogin = document.getElementById('form-login');
+            const formSignup = document.getElementById('form-signup');
+            
+            if (formLogin) formLogin.reset();
+            if (formSignup) formSignup.reset();
+
+            const msgId = document.getElementById('id-check-msg');
+            const msgPw = document.getElementById('pw-match-msg');
+            
+            if (msgId) {
+                msgId.innerText = "";
+                msgId.classList.add('hidden');
+            }
+            if (msgPw) {
+                msgPw.innerText = "";
+                msgPw.classList.add('hidden');
+            }
+
+            isIdChecked = false;
+            isPwMatched = false;
+            checkSignupValidity();
+        }
+
+        // --- 2. 로그인 및 회원가입 제어 ---
+        function switchAuthTab(type) {
+            clearAuthInputs();
+
+            const btnL = document.getElementById('btn-tab-login');
+            const btnS = document.getElementById('btn-tab-signup');
+            const formL = document.getElementById('form-login');
+            const formS = document.getElementById('form-signup');
+
+            if (type === 'login') {
+                btnL.className = "flex-1 py-2.5 rounded-xl bg-white text-gray-800 shadow-sm transition";
+                btnS.className = "flex-1 py-2.5 rounded-xl text-gray-400 transition";
+                formL.classList.remove('hidden');
+                formS.classList.add('hidden');
+            } else {
+                btnS.className = "flex-1 py-2.5 rounded-xl bg-white text-gray-800 shadow-sm transition";
+                btnL.className = "flex-1 py-2.5 rounded-xl text-gray-400 transition";
+                formS.classList.remove('hidden');
+                formL.classList.add('hidden');
+            }
+        }
+
+        function checkDuplicateId() {
+            const idVal = document.getElementById('signup-id').value.trim();
+            const msg = document.getElementById('id-check-msg');
+            msg.classList.remove('hidden');
+
+            if (!idVal) {
+                msg.className = "text-[10px] mt-1 font-semibold text-red-500";
+                msg.innerText = "아이디를 입력해 주세요.";
+                isIdChecked = false;
+            } else {
+                const exists = registeredUsers.some(u => u.id === idVal);
+                if (exists) {
+                    msg.className = "text-[10px] mt-1 font-semibold text-red-500";
+                    msg.innerText = "이미 존재하는 아이디입니다.";
+                    isIdChecked = false;
+                } else {
+                    msg.className = "text-[10px] mt-1 font-semibold text-green-600";
+                    msg.innerText = "사용 가능한 아이디입니다.";
+                    isIdChecked = true;
+                }
+            }
+            checkSignupValidity();
+        }
+
+        function validatePasswords() {
+            const pw = document.getElementById('signup-pw').value;
+            const confirm = document.getElementById('signup-pw-confirm').value;
+            const msg = document.getElementById('pw-match-msg');
+            msg.classList.remove('hidden');
+
+            if (pw && confirm && pw === confirm) {
+                msg.className = "text-[10px] font-semibold text-green-600";
+                msg.innerText = "비밀번호가 일치합니다.";
+                isPwMatched = true;
+            } else {
+                msg.className = "text-[10px] font-semibold text-red-500";
+                msg.innerText = "비밀번호가 일치하지 않습니다.";
+                isPwMatched = false;
+            }
+            checkSignupValidity();
+        }
+
+        function checkSignupValidity() {
+            const btn = document.getElementById('btn-submit-signup');
+            if (isIdChecked && isPwMatched) {
+                btn.disabled = false;
+                btn.className = "w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl text-xs shadow-md transition mt-2 cursor-pointer";
+            } else {
+                btn.disabled = true;
+                btn.className = "w-full bg-gray-300 text-white font-bold py-3 rounded-xl text-xs shadow-sm transition mt-2";
+            }
+        }
+
+        function handleSignup(e) {
+            e.preventDefault();
+            const newUser = {
+                name: document.getElementById('signup-name').value.trim(),
+                phone: document.getElementById('signup-phone').value.trim(),
+                id: document.getElementById('signup-id').value.trim(),
+                pw: document.getElementById('signup-pw').value,
+                gender: document.getElementById('signup-gender').value,
+                age: parseInt(document.getElementById('signup-age').value),
+                height: parseFloat(document.getElementById('signup-height').value),
+                weight: parseFloat(document.getElementById('signup-weight').value),
+                targetCalorie: 2000,
+                dietPlan: 'balanced'
+            };
+
+            registeredUsers.push(newUser);
+            // ① 회원가입 시 "foodconnect_users_db" 키로 동기화 저장
+            localStorage.setItem("foodconnect_users_db", JSON.stringify(registeredUsers));
+
+            currentUser = newUser;
+            localStorage.setItem("foodconnect_active_user", JSON.stringify(currentUser));
+            
+            eatenHistoryLogs = [];
+            saveUserHistoryLogs();
+
+            clearAuthInputs();
+
+            alert(`${currentUser.name}님, 회원가입이 완료되었습니다!`);
+            startMainApp();
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const idInput = document.getElementById('login-id').value.trim();
+            const pwInput = document.getElementById('login-pw').value;
+            const autoLogin = document.getElementById('auto-login-check').checked;
+
+            const foundUser = registeredUsers.find(u => u.id === idInput && u.pw === pwInput);
+
+            if (!foundUser) {
+                alert("가입되지 않은 아이디이거나 비밀번호가 올바르지 않습니다.");
+                return;
+            }
+
+            currentUser = foundUser;
+            localStorage.setItem("foodconnect_active_user", JSON.stringify(currentUser));
+
+            if (autoLogin) {
+                localStorage.setItem("foodconnect_autologin", "true");
+            } else {
+                localStorage.removeItem("foodconnect_autologin");
+            }
+
+            loadUserHistoryLogs();
+            clearAuthInputs();
+            startMainApp();
+        }
+
+        function handleDeleteAccount() {
+            if (!currentUser) return;
+            if (confirm("정말로 탈퇴하시겠습니까? 계정 정보와 식단 기록이 모두 삭제됩니다.")) {
+                registeredUsers = registeredUsers.filter(u => u.id !== currentUser.id);
+                // ① 회원 탈퇴 시 "foodconnect_users_db" 키 업데이트
+                localStorage.setItem("foodconnect_users_db", JSON.stringify(registeredUsers));
+                
+                // ② 식단 기록 키 삭제
+                localStorage.removeItem(`foodconnect_logs_${currentUser.id}`);
+                localStorage.removeItem("foodconnect_active_user");
+                localStorage.removeItem("foodconnect_autologin");
+                alert("회원 탈퇴가 완료되었습니다.");
+                location.reload();
+            }
+        }
+
+        function openFindIdModal() {
+            document.getElementById('modal-find-id').classList.remove('hidden');
+            document.getElementById('find-id-step1').classList.remove('hidden');
+            document.getElementById('find-id-step2').classList.add('hidden');
+            document.getElementById('find-id-result').classList.add('hidden');
+            document.getElementById('find-id-phone').value = "";
+            document.getElementById('find-id-code').value = "";
+        }
+
+        function sendIdCode() {
+            const phone = document.getElementById('find-id-phone').value;
+            if (!phone) return alert("전화번호를 입력해 주세요.");
+            alert("인증 코드가 발송되었습니다. (임시 인증코드: 1234)");
+            document.getElementById('find-id-step1').classList.add('hidden');
+            document.getElementById('find-id-step2').classList.remove('hidden');
+        }
+
+        function verifyIdCode() {
+            const code = document.getElementById('find-id-code').value;
+            const phone = document.getElementById('find-id-phone').value;
+            if (code === "1234") {
+                const matched = registeredUsers.find(u => u.phone === phone);
+                document.getElementById('find-id-step2').classList.add('hidden');
+                document.getElementById('find-id-result').classList.remove('hidden');
+                document.getElementById('found-id-display').innerText = matched ? matched.id : "가입된 계정 없음";
+            } else {
+                alert("인증 코드가 올바르지 않습니다.");
+            }
+        }
+
+        function openFindPwModal() {
+            document.getElementById('modal-find-pw').classList.remove('hidden');
+            document.getElementById('find-pw-step1').classList.remove('hidden');
+            document.getElementById('find-pw-step2').classList.add('hidden');
+            document.getElementById('find-pw-id').value = "";
+            document.getElementById('find-pw-phone').value = "";
+            document.getElementById('reset-pw').value = "";
+            document.getElementById('reset-pw-confirm').value = "";
+        }
+
+        function verifyUserForPwReset() {
+            const id = document.getElementById('find-pw-id').value;
+            const phone = document.getElementById('find-pw-phone').value;
+            const matched = registeredUsers.find(u => u.id === id && u.phone === phone);
+
+            if (!matched) return alert("입력하신 정보와 일치하는 계정이 없습니다.");
+
+            alert("본인 확인이 완료되었습니다. 새 비밀번호를 설정해 주세요.");
+            document.getElementById('find-pw-step1').classList.add('hidden');
+            document.getElementById('find-pw-step2').classList.remove('hidden');
+        }
+
+        function completePwReset() {
+            const id = document.getElementById('find-pw-id').value;
+            const p1 = document.getElementById('reset-pw').value;
+            const p2 = document.getElementById('reset-pw-confirm').value;
+
+            if (!p1 || p1 !== p2) return alert("비밀번호가 일치하지 않습니다.");
+
+            const userIndex = registeredUsers.findIndex(u => u.id === id);
+            if (userIndex !== -1) {
+                registeredUsers[userIndex].pw = p1;
+                // ① 비밀번호 재설정 시 "foodconnect_users_db" 키 저장
+                localStorage.setItem("foodconnect_users_db", JSON.stringify(registeredUsers));
+                alert("비밀번호가 성공적으로 변경되었습니다. 새 비밀번호로 로그인해 주세요.");
+                closeAuthModal();
+            }
+        }
+
+        function closeAuthModal() {
+            document.getElementById('modal-find-id').classList.add('hidden');
+            document.getElementById('modal-find-pw').classList.add('hidden');
+        }
+
+        function handleLogout() {
+            localStorage.removeItem("foodconnect_autologin");
+            localStorage.removeItem("foodconnect_active_user");
+            currentUser = null;
+            clearAuthInputs();
+            document.getElementById('screen-main').classList.add('hidden');
+            document.getElementById('screen-auth').classList.remove('hidden');
+        }
+
+        // --- 3. 메인 애플리케이션 진입 ---
+        function startMainApp() {
+            document.getElementById('screen-auth').classList.add('hidden');
+            document.getElementById('screen-main').classList.remove('hidden');
+
+            document.getElementById('profile-user-name').innerText = `건강한 나 (${currentUser.name} 님)`;
+            document.getElementById('profile-user-info').innerText = `${currentUser.gender} / ${currentUser.age}세 / ${currentUser.phone}`;
+            
+            document.getElementById('profile-age').value = currentUser.age;
+            document.getElementById('profile-height').value = currentUser.height;
+            document.getElementById('profile-weight').value = currentUser.weight;
+            document.getElementById('user-target-cal').value = currentUser.targetCalorie || 2000;
+            document.getElementById('diet-plan-select').value = currentUser.dietPlan || 'balanced';
+
+            document.getElementById('history-start-date').value = getFormattedDate(-7);
+            document.getElementById('history-end-date').value = getFormattedDate(0);
+
+            calculateBMI();
+            renderHomeRecommendations();
+            renderNutritionTab();
+            filterNutritionHistory();
+        }
+
+        // --- 4. 프로필 / 영양 수치 관리 ---
+        function calculateBMI() {
+            const h = parseFloat(document.getElementById('profile-height').value) / 100;
+            const w = parseFloat(document.getElementById('profile-weight').value);
+
+            if (!h || !w || h <= 0) return;
+
+            const bmi = (w / (h * h)).toFixed(1);
+            document.getElementById('bmi-value-display').innerText = `${bmi} kg/m²`;
+
+            const badge = document.getElementById('bmi-status-badge');
+            let status = "정상 체중";
+            let colorClass = "bg-green-100 text-green-700";
+
+            if (bmi < 18.5) {
+                status = "저체중";
+                colorClass = "bg-blue-100 text-blue-700";
+            } else if (bmi >= 18.5 && bmi < 23) {
+                status = "정상 체중";
+                colorClass = "bg-green-100 text-green-700";
+            } else if (bmi >= 23 && bmi < 25) {
+                status = "비만 전단계";
+                colorClass = "bg-amber-100 text-amber-700";
+            } else {
+                status = "비만";
+                colorClass = "bg-red-100 text-red-700";
+            }
+
+            badge.className = `${colorClass} text-xs font-bold px-2.5 py-1 rounded-full`;
+            badge.innerText = status;
+
+            const recCal = Math.round(w * 30);
+            document.getElementById('bmi-recommended-cal').innerText = `${recCal.toLocaleString()} kcal`;
+            updateCalorieProgress();
+        }
+
+        function saveTargetCalorie() {
+            const target = parseInt(document.getElementById('user-target-cal').value) || 2000;
+            currentUser.targetCalorie = target;
+            updateUserInStorage();
+            updateCalorieProgress();
+        }
+
+        function updateUserInStorage() {
+            const idx = registeredUsers.findIndex(u => u.id === currentUser.id);
+            if (idx !== -1) {
+                registeredUsers[idx] = currentUser;
+                // ① 회원 정보 업데이트 시 "foodconnect_users_db" 키 저장
+                localStorage.setItem("foodconnect_users_db", JSON.stringify(registeredUsers));
+                localStorage.setItem("foodconnect_active_user", JSON.stringify(currentUser));
+            }
+        }
+
+        function updateDietPlanGoal() {
+            const select = document.getElementById('diet-plan-select');
+            const desc = document.getElementById('diet-plan-desc');
+            currentUser.dietPlan = select.value;
+            updateUserInStorage();
+
+            const descriptions = {
+                balanced: "탄수화물, 단백질, 지방을 균형 있게 섭취하도록 최적의 맞춤 메뉴를 추천합니다.",
+                diet: "포만감은 높이고 칼로리는 낮춘 저열량·고식이섬유 위주의 메뉴를 집중 추천합니다.",
+                muscle: "근육 합성 및 체력 단련에 필요한 고단백 위주의 메뉴를 우선 추천합니다.",
+                keto: "탄수화물 함량을 최소화하고 건강한 지방 섭취를 돕는 메뉴를 필터링합니다.",
+                glycemic: "혈당 수치가 급격히 오르지 않는 저GI 지수 건강 메뉴 위주로 구성합니다."
+            };
+            desc.innerText = descriptions[select.value];
+            renderHomeRecommendations();
+        }
+
+        function updateCalorieProgress() {
+            const target = currentUser.targetCalorie || 2000;
+            const todayStr = getFormattedDate(0);
+            const todayLogs = eatenHistoryLogs.filter(l => l.date === todayStr);
+
+            let currentCal = todayLogs.length * 680; 
+
+            document.getElementById('nutrition-cal-display').innerText = `${currentCal.toLocaleString()} / ${target.toLocaleString()} kcal`;
+            const pct = Math.min(100, Math.round((currentCal / target) * 100));
+            document.getElementById('nutrition-cal-bar').style.width = `${pct}%`;
+            document.getElementById('nutrition-status-pct').innerText = `${pct}% 충족`;
+
+            const prot = Math.min(65, todayLogs.length * 20);
+            const carbs = Math.min(250, todayLogs.length * 80);
+            const vit = Math.min(100, todayLogs.length * 30);
+
+            document.getElementById('nutrition-protein-display').innerText = `${prot} / 65g`;
+            document.getElementById('nutrition-protein-bar').style.width = `${Math.round((prot/65)*100)}%`;
+
+            document.getElementById('nutrition-carbs-display').innerText = `${carbs} / 250g`;
+            document.getElementById('nutrition-carbs-bar').style.width = `${Math.round((carbs/250)*100)}%`;
+
+            document.getElementById('nutrition-vit-display').innerText = `${vit} / 100% ${vit < 100 ? '(부족!)' : '(충족)'}`;
+            document.getElementById('nutrition-vit-bar').style.width = `${vit}%`;
+        }
+
+        function updateProfileBodyData() {
+            currentUser.age = parseInt(document.getElementById('profile-age').value);
+            currentUser.height = parseFloat(document.getElementById('profile-height').value);
+            currentUser.weight = parseFloat(document.getElementById('profile-weight').value);
+
+            document.getElementById('profile-user-info').innerText = `${currentUser.gender} / ${currentUser.age}세 / ${currentUser.phone}`;
+            updateUserInStorage();
+            calculateBMI();
+            alert("신체 정보가 업데이트되었습니다.");
+        }
+
+        // --- 5. 네비게이션 & 식단 추천 필터 로직 ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            const navIds = ['home', 'camera', 'nutrition', 'profile'];
+            navIds.forEach(id => {
+                const navBtn = document.getElementById(`nav-${id}`);
+                if (id === tabId) {
+                    navBtn.className = "text-red-500 flex flex-col items-center font-bold";
+                } else {
+                    navBtn.className = "text-gray-400 hover:text-red-500 flex flex-col items-center";
+                }
+            });
+
+            if (tabId === 'camera') openCamera();
+            else closeCamera();
+        }
+
+        function setMealMode(mode) {
+            currentMealMode = mode;
+            const btnP = document.getElementById('btn-mode-personal');
+            const btnG = document.getElementById('btn-mode-group');
+            const groupArea = document.getElementById('group-session-area');
+            const badge = document.getElementById('header-mode-badge');
+
+            if (mode === 'personal') {
+                btnP.className = "py-2.5 rounded-xl font-bold text-sm bg-red-500 text-white shadow-sm";
+                btnG.className = "py-2.5 rounded-xl font-bold text-sm bg-gray-100 text-gray-600";
+                groupArea.classList.add('hidden');
+                badge.innerText = "개인 맞춤 모드";
+            } else {
+                btnG.className = "py-2.5 rounded-xl font-bold text-sm bg-red-500 text-white shadow-sm";
+                btnP.className = "py-2.5 rounded-xl font-bold text-sm bg-gray-100 text-gray-600";
+                groupArea.classList.remove('hidden');
+                badge.innerText = "단체 모임 모드";
+            }
+            renderHomeRecommendations();
+        }
+
+        function createNewGroup() {
+            const randomCode = "MEET" + Math.floor(1000 + Math.random() * 9000);
+            groupState.active = true;
+            groupState.code = randomCode;
+            groupState.members = 1;
+
+            document.getElementById('group-init-view').classList.add('hidden');
+            document.getElementById('group-active-view').classList.remove('hidden');
+            document.getElementById('display-group-code').innerText = randomCode;
+            document.getElementById('display-member-count').innerText = `현재 1명 참여 중`;
+            renderHomeRecommendations();
+        }
+
+        function joinGroupWithCode() {
+            const code = document.getElementById('join-code-input').value;
+            if(!code) return alert("모임 코드를 입력해 주세요.");
+            groupState.active = true;
+            groupState.code = code.toUpperCase();
+            groupState.members = 3;
+
+            document.getElementById('group-init-view').classList.add('hidden');
+            document.getElementById('group-active-view').classList.remove('hidden');
+            document.getElementById('display-group-code').innerText = groupState.code;
+            document.getElementById('display-member-count').innerText = `현재 3명 참여 중`;
+            renderHomeRecommendations();
+        }
+
+        function addVirtualMember() {
+            groupState.members += 1;
+            document.getElementById('display-member-count').innerText = `현재 ${groupState.members}명 참여 중`;
+            renderHomeRecommendations();
+        }
+
+        function leaveGroup() {
+            groupState.active = false;
+            document.getElementById('group-init-view').classList.remove('hidden');
+            document.getElementById('group-active-view').classList.add('hidden');
+            renderHomeRecommendations();
+        }
+
+        function selectCategory(cat, btn) {
+            selectedCategory = cat;
+            document.getElementById('category-filters').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderHomeRecommendations();
+        }
+
+        function onSpicySliderChange(val) {
+            selectedSpicyLevel = parseInt(val);
+            const names = ["상관없음 (전체)", "1단계 (순한맛)", "2단계 (진순이)", "3단계 (신라면)", "4단계 (열라면)", "5단계 (불닭)"];
+            document.getElementById('spicy-level-desc').innerText = `선택: ${names[selectedSpicyLevel]}`;
+            renderHomeRecommendations();
+        }
+
+        function setSpicyAll() {
+            document.getElementById('spicy-slider').value = 0;
+            onSpicySliderChange(0);
+        }
+
+        function toggleFeature(feature, btn) {
+            const idx = selectedFeatures.indexOf(feature);
+            if (idx > -1) {
+                selectedFeatures.splice(idx, 1);
+                btn.classList.remove('active');
+            } else {
+                selectedFeatures.push(feature);
+                btn.classList.add('active');
+            }
+            renderHomeRecommendations();
+        }
+
+        function randomizeRecommendations() {
+            isRandomMode = true;
+            renderHomeRecommendations();
+            isRandomMode = false;
+        }
+
+        function resetFilters() {
+            selectedCategory = '전체';
+            selectedSpicyLevel = 0;
+            selectedFeatures = [];
+            document.getElementById('category-filters').querySelectorAll('button').forEach((b, i) => {
+                if(i===0) b.classList.add('active'); else b.classList.remove('active');
+            });
+            document.getElementById('feature-filters').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            setSpicyAll();
+        }
+
+        function openKakaoMapSearch(foodName) {
+            const encoded = encodeURIComponent(foodName);
+            window.open(`https://map.kakao.com/link/search/${encoded}`, '_blank');
+        }
+
+        function renderHomeRecommendations() {
+            const container = document.getElementById('food-recommendation-list');
+            container.innerHTML = "";
+
+            let excludeList = eatenHistoryLogs.map(l => l.food);
+            if (currentMealMode === 'group' && groupState.active) {
+                excludeList = [...excludeList, ...groupState.groupFoods];
+            }
+
+            let filtered = googlePopularFoodDB.filter(food => !excludeList.includes(food.name));
+
+            if (selectedCategory !== '전체') {
+                filtered = filtered.filter(f => f.category === selectedCategory);
+            }
+            if (selectedSpicyLevel > 0) {
+                filtered = filtered.filter(f => f.spicy === selectedSpicyLevel);
+            }
+            if (selectedFeatures.length > 0) {
+                filtered = filtered.filter(f => selectedFeatures.some(tag => f.features.includes(tag)));
+            }
+
+            if (isRandomMode) {
+                filtered = filtered.sort(() => Math.random() - 0.5);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="p-8 text-center text-xs text-gray-400 bg-white rounded-2xl">조건에 딱 맞는 음식이 없습니다. 필터를 변경해 보세요!</div>`;
+                return;
+            }
+
+            filtered.forEach(food => {
+                const card = document.createElement('div');
+                card.className = "food-card bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex justify-between items-center cursor-pointer";
+                card.onclick = () => openKakaoMapSearch(food.name);
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                            <span class="bg-red-50 text-red-500 text-[10px] font-bold px-2 py-0.5 rounded">${food.category}</span>
+                            <span class="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded">🌶️ ${food.spicy}단계</span>
+                            ${food.features.map(f => `<span class="bg-amber-50 text-amber-700 text-[10px] px-1.5 py-0.5 rounded">#${f}</span>`).join('')}
+                        </div>
+                        <h3 class="font-bold text-gray-800 text-base mt-1.5">${food.name}</h3>
+                        <p class="text-xs text-gray-400 mt-0.5">핵심 영양소: <span class="text-green-600 font-semibold">${food.nutrient}</span></p>
+                    </div>
+                    <button class="bg-red-500 text-white px-3 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-red-600 whitespace-nowrap">
+                        <i class="fa-solid fa-map-location-dot mr-1"></i> 카카오맵 검색
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- 6. 기간별 기록 조회 & 영양분석 ---
+        function filterNutritionHistory() {
+            const start = document.getElementById('history-start-date').value;
+            const end = document.getElementById('history-end-date').value;
+            const list = document.getElementById('history-records-list');
+            list.innerHTML = "";
+
+            if (!start || !end) return;
+
+            const filteredLogs = eatenHistoryLogs.filter(log => log.date >= start && log.date <= end);
+
+            if (filteredLogs.length === 0) {
+                list.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">해당 기간의 식단 기록이 없습니다.</p>`;
+                return;
+            }
+
+            filteredLogs.forEach(log => {
+                const item = document.createElement('div');
+                item.className = "bg-gray-50 p-2.5 rounded-xl border border-gray-100 flex justify-between items-center text-xs";
+                item.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <span class="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded">${log.date}</span>
+                        <span class="font-bold text-gray-800">${log.food}</span>
+                    </div>
+                    <span class="text-gray-400 text-[10px]">기록 완료</span>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function renderNutritionTab() {
+            const list = document.getElementById('nutrition-recommended-list');
+            list.innerHTML = "";
+
+            const targetNutrients = ["비타민A, 타우린", "식이섬유, 비타민", "단백질, 칼슘"];
+            const nutritionFoods = googlePopularFoodDB.filter(f => targetNutrients.some(n => f.nutrient.includes(n))).slice(0, 3);
+
+            nutritionFoods.forEach(food => {
+                const item = document.createElement('div');
+                item.className = "bg-gray-50 rounded-xl p-3 flex justify-between items-center text-xs border border-gray-100";
+                item.innerHTML = `
+                    <div>
+                        <span class="font-bold text-gray-800 text-sm">${food.name}</span>
+                        <p class="text-gray-400 mt-0.5">보충 성분: <span class="text-green-600 font-bold">${food.nutrient}</span></p>
+                    </div>
+                    <span class="bg-green-100 text-green-700 font-bold text-[10px] px-2 py-1 rounded-full">영양 추천</span>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        // --- 7. 식단 등록 (카메라/수동 입력) ---
+        let streamTrack = null;
+
+        async function openCamera() {
+            const video = document.getElementById('webcam');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                video.srcObject = stream;
+                streamTrack = stream.getTracks()[0];
+            } catch (err) {
+                console.log("카메라 접근 불가");
+            }
+        }
+
+        function closeCamera() {
+            if (streamTrack) streamTrack.stop();
+            resetCameraUI();
+        }
+
+        function takePicture() {
+            const video = document.getElementById('webcam');
+            const canvas = document.getElementById('canvas');
+            const photo = document.getElementById('photo-preview');
+
+            canvas.width = video.videoWidth || 320;
+            canvas.height = video.videoHeight || 400;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            photo.src = canvas.toDataURL('image/png');
+            video.classList.add('hidden');
+            photo.classList.remove('hidden');
+            document.getElementById('filter-badge').classList.remove('hidden');
+
+            document.getElementById('capture-controls').classList.add('hidden');
+            document.getElementById('result-controls').classList.remove('hidden');
+        }
+
+        function editDetectedFoodName() {
+            const currentName = document.getElementById('ai-detected-food').innerText;
+            const newName = prompt("올바른 음식 이름을 입력해 주세요:", currentName);
+            if (newName && newName.trim() !== "") {
+                document.getElementById('ai-detected-food').innerText = newName.trim();
+            }
+        }
+
+        function downloadPhoto() {
+            const photo = document.getElementById('photo-preview');
+            const a = document.createElement('a');
+            a.href = photo.src;
+            a.download = `FoodConnect_${Date.now()}.png`;
+            a.click();
+        }
+
+        function confirmFoodLog() {
+            const detected = document.getElementById('ai-detected-food').innerText;
+            addFoodLogEntry(detected);
+        }
+
+        function saveManualFoodLog() {
+            const input = document.getElementById('manual-food-input');
+            const val = input.value.trim();
+            if (!val) return alert("음식 이름을 입력해 주세요.");
+            addFoodLogEntry(val);
+            input.value = "";
+        }
+
+        function addFoodLogEntry(foodName) {
+            const todayStr = getFormattedDate(0);
+            eatenHistoryLogs.unshift({ food: foodName, date: todayStr });
+            saveUserHistoryLogs();
+            
+            alert(`[${foodName}](이)가 기록되었습니다. (1주일 후 자동 초기화)`);
+            updateCalorieProgress();
+            switchTab('home');
+            filterNutritionHistory();
+        }
+
+        function resetCameraUI() {
+            document.getElementById('webcam').classList.remove('hidden');
+            document.getElementById('photo-preview').classList.add('hidden');
+            document.getElementById('filter-badge').classList.add('hidden');
+            document.getElementById('capture-controls').classList.remove('hidden');
+            document.getElementById('result-controls').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
