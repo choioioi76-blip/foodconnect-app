@@ -7,10 +7,10 @@
   "theme_color": "#ffffff",
   "icons": [
     {
-      "src": "https://via.placeholder.com/512",
+      "src": "icon.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ],
-  "description": "FoodConnect App"
+  ]
 }
